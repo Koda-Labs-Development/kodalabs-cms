@@ -1,0 +1,68 @@
+version: '3.9'
+
+services:
+  kodalabs-cms:
+    build:
+      context: ../../
+      dockerfile: deployment/docker/Dockerfile
+    container_name: kodalabs-cms-prod
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - PAYLOAD_SECRET=${PAYLOAD_SECRET}
+      - DATABASE_URL=postgresql://kodalabs_cms:${POSTGRES_PASSWORD}@cms-postgres:5432/kodalabs_cms
+      - PAYLOAD_PUBLIC_SERVER_URL=https://cms.kodalabs.dev
+      - CORS_ORIGIN_PJ_CLT=${CORS_ORIGIN_PJ_CLT}
+      - CORS_ORIGIN_KODALABS=${CORS_ORIGIN_KODALABS}
+    networks:
+      monitoring_shared_monitoring_network:
+        ipv4_address: 172.18.0.30
+    depends_on:
+      cms-postgres:
+        condition: service_healthy
+    labels:
+      # Traefik
+      - "traefik.enable=true"
+      - "traefik.http.routers.cms.rule=Host(`cms.kodalabs.dev`)"
+      - "traefik.http.routers.cms.entrypoints=websecure"
+      - "traefik.http.routers.cms.tls=true"
+      - "traefik.http.routers.cms.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cms.loadbalancer.server.port=3001"
+      # Security
+      - "traefik.http.middlewares.cms-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow"
+      - "traefik.http.routers.cms.middlewares=cms-headers"
+      # Monitoring
+      - "prometheus.scrape=true"
+      - "prometheus.port=3001"
+
+  cms-postgres:
+    image: postgres:16-alpine
+    container_name: kodalabs-cms-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=kodalabs_cms
+      - POSTGRES_USER=kodalabs_cms
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - cms-postgres-data:/var/lib/postgresql/data
+      - ../backup:/backup
+    networks:
+      monitoring_shared_monitoring_network:
+        ipv4_address: 172.18.0.31
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kodalabs_cms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "prometheus.scrape=true"
+      - "prometheus.port=5432"
+
+networks:
+  monitoring_shared_monitoring_network:
+    external: true
+
+volumes:
+  cms-postgres-data:
+    driver: local

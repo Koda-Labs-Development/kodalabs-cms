@@ -21,12 +21,14 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@payloadcms/bundler-webpack": "^1.0.7",
-    "@payloadcms/db-mongodb": "^1.7.5",
-    "@payloadcms/richtext-slate": "^1.5.2",
+    "@payloadcms/db-postgres": "^3.58.0",
+    "@payloadcms/next": "^3.58.0",
+    "@payloadcms/richtext-lexical": "^3.58.0",
+    "@payloadcms/ui": "^3.58.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
-    "payload": "^2.32.3"
+    "payload": "^3.58.0",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",

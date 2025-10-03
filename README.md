@@ -14,9 +14,9 @@ Centralized content management system that:
 ## 🏗️ Architecture
 
 ### Technology Stack
-- **CMS**: Payload CMS v2
-- **Database**: MongoDB 7
-- **Editor**: Slate.js Rich Text
+- **CMS**: Payload CMS v3 (latest)
+- **Database**: PostgreSQL 16
+- **Editor**: Lexical Rich Text
 - **Runtime**: Node.js 20+
 - **Language**: TypeScript
 - **Deployment**: Docker + Traefik
@@ -32,7 +32,7 @@ Each site has:
 
 ### Prerequisites
 - Node.js 20+
-- MongoDB 7+ (or Docker)
+- PostgreSQL 16+ (or Docker)
 - Git
 
 ### Installation
@@ -121,8 +121,8 @@ PORT=3001
 PAYLOAD_SECRET=your-secret-here
 PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3001
 
-# Database
-MONGODB_URI=mongodb://localhost:27017/kodalabs-cms
+# Database (PostgreSQL)
+DATABASE_URL=postgresql://kodalabs_cms:password@localhost:5432/kodalabs_cms
 
 # CORS (for frontend apps)
 CORS_ORIGIN_PJ_CLT=https://pjouclt.com.br
@@ -218,13 +218,16 @@ npm run ai:create-post
 
 ## 🔍 Troubleshooting
 
-### MongoDB Connection Issues
+### PostgreSQL Connection Issues
 ```bash
-# Check MongoDB is running
-docker ps | grep mongo
+# Check PostgreSQL is running
+docker ps | grep postgres
 
 # View logs
-docker logs kodalabs-cms-mongo
+docker logs kodalabs-cms-postgres
+
+# Connect to database
+docker exec -it kodalabs-cms-postgres psql -U kodalabs_cms
 ```
 
 ### Build Errors
@@ -277,6 +280,7 @@ kodalabs-cms/
 
 ---
 
-**Version**: 1.0.0
-**Status**: Phase 1 - Repository Setup Complete
-**Next**: Phase 2 - Payload Configuration
+**Version**: 1.1.0
+**Status**: Phase 1 - Repository Setup Complete (PostgreSQL Migration)
+**Database**: PostgreSQL 16 (aligned with VPS infrastructure)
+**Next**: Phase 2 - Payload v3 Configuration
