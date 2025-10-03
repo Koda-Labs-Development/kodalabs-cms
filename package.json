@@ -1,0 +1,39 @@
+{
+  "name": "kodalabs-cms",
+  "version": "1.0.0",
+  "description": "Multi-tenant headless CMS for KodaLabs projects with AI content generation",
+  "main": "dist/server.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "cross-env PAYLOAD_CONFIG_PATH=src/payload.config.ts nodemon",
+    "build": "tsc && payload build",
+    "serve": "cross-env PAYLOAD_CONFIG_PATH=dist/payload.config.js NODE_ENV=production node dist/server.js",
+    "generate:types": "cross-env PAYLOAD_CONFIG_PATH=src/payload.config.ts payload generate:types",
+    "ai:create-post": "ts-node scripts/ai-content-generator.ts",
+    "docker:build": "docker build -t kodalabs-cms:latest -f deployment/docker/Dockerfile .",
+    "docker:dev": "docker-compose -f deployment/docker/docker-compose.dev.yml up",
+    "docker:prod": "docker-compose -f deployment/docker/docker-compose.prod.yml up -d"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@payloadcms/bundler-webpack": "^1.0.7",
+    "@payloadcms/db-mongodb": "^1.7.5",
+    "@payloadcms/richtext-slate": "^1.5.2",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "payload": "^2.32.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.6.2",
+    "cross-env": "^10.1.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
