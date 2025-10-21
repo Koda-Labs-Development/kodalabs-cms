@@ -10,26 +10,32 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    env_file:
+      - ../../.env
     environment:
       - NODE_ENV=development
-      - PORT=3001
-      - PAYLOAD_SECRET=${PAYLOAD_SECRET}
+      - PAYLOAD_CONFIG_PATH=src/payload.config.ts
       - DATABASE_URL=postgresql://kodalabs_cms:${POSTGRES_PASSWORD}@cms-postgres-dev:5432/kodalabs_cms
-      - PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3001
+      - PAYLOAD_DROP_DATABASE=false
+      - CI=true
     volumes:
       - ../../src:/app/src
       - ../../public:/app/public
+      - ../../nodemon.json:/app/nodemon.json
+      - ../../tsconfig.json:/app/tsconfig.json
     depends_on:
       cms-postgres-dev:
         condition: service_healthy
-    command: npm run dev
+    command: sh -c "npm install && npm run dev"
 
   cms-postgres-dev:
     image: postgres:16-alpine
     container_name: kodalabs-cms-postgres-dev
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5433:5432"
+    env_file:
+      - ../../.env
     environment:
       - POSTGRES_DB=kodalabs_cms
       - POSTGRES_USER=kodalabs_cms
