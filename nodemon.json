@@ -1,0 +1,9 @@
+{
+  "watch": ["src", "build"],
+  "ext": "ts,json",
+  "ignore": ["src/**/*.spec.ts", "src/**/*.test.ts", "dist/**/*"],
+  "exec": "tsc --skipLibCheck && node -r ./src/register-scss-stub.js dist/server.js",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
