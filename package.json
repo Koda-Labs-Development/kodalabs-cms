@@ -7,10 +7,10 @@
     "doc": "docs"
   },
   "scripts": {
-    "dev": "cross-env PAYLOAD_CONFIG_PATH=src/payload.config.ts nodemon",
-    "build": "tsc && payload build",
-    "serve": "cross-env PAYLOAD_CONFIG_PATH=dist/payload.config.js NODE_ENV=production node dist/server.js",
-    "generate:types": "cross-env PAYLOAD_CONFIG_PATH=src/payload.config.ts payload generate:types",
+    "dev": "nodemon",
+    "build": "payload build && tsc",
+    "serve": "cross-env NODE_ENV=production node dist/server.js",
+    "generate:types": "payload generate:types",
     "ai:create-post": "ts-node scripts/ai-content-generator.ts",
     "docker:build": "docker build -t kodalabs-cms:latest -f deployment/docker/Dockerfile .",
     "docker:dev": "docker-compose -f deployment/docker/docker-compose.dev.yml up",
@@ -19,21 +19,19 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@payloadcms/db-postgres": "^3.58.0",
-    "@payloadcms/next": "^3.58.0",
-    "@payloadcms/richtext-lexical": "^3.58.0",
-    "@payloadcms/ui": "^3.58.0",
-    "dotenv": "^17.2.3",
+    "@payloadcms/bundler-webpack": "^1.0.7",
+    "@payloadcms/db-postgres": "^0.8.6",
+    "@payloadcms/richtext-slate": "^1.5.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "payload": "^3.58.0",
+    "payload": "^2.30.3",
     "pg": "^8.16.3"
   },
   "devDependencies": {
     "@types/express": "^5.0.3",
     "@types/node": "^24.6.2",
-    "cross-env": "^10.1.0",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
