@@ -1,6 +1,6 @@
 # KodaLabs CMS
 
-Multi-tenant headless CMS powered by Payload CMS with AI content generation for all KodaLabs projects.
+Multi-tenant headless CMS powered by Payload CMS v2 with AI content generation for all KodaLabs projects.
 
 ## 🎯 Purpose
 
@@ -14,11 +14,11 @@ Centralized content management system that:
 ## 🏗️ Architecture
 
 ### Technology Stack
-- **CMS**: Payload CMS v3 (latest)
+- **CMS**: Payload CMS v2.30.3 (standalone Express server)
 - **Database**: PostgreSQL 16
-- **Editor**: Lexical Rich Text
+- **Editor**: Slate Rich Text
 - **Runtime**: Node.js 20+
-- **Language**: TypeScript
+- **Language**: TypeScript 5.9.3
 - **Deployment**: Docker + Traefik
 
 ### Multi-Tenant Design
@@ -32,7 +32,7 @@ Each site has:
 
 ### Prerequisites
 - Node.js 20+
-- PostgreSQL 16+ (or Docker)
+- Docker & Docker Compose
 - Git
 
 ### Installation
@@ -54,54 +54,55 @@ Each site has:
    # Edit .env with your configuration
    ```
 
-4. **Generate Payload secret**
+4. **Generate secrets**
    ```bash
-   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   # Payload secret (min 32 chars)
+   node -e "console.log('PAYLOAD_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+
+   # PostgreSQL password
+   node -e "console.log('POSTGRES_PASSWORD=' + require('crypto').randomBytes(16).toString('hex'))"
    ```
 
 5. **Start development server**
    ```bash
-   # With local MongoDB
-   npm run dev
-
-   # Or with Docker
+   # With Docker (recommended)
    npm run docker:dev
    ```
 
 6. **Access CMS Admin**
    - URL: http://localhost:3001/admin
    - Create your first admin user
+   - Start managing content!
 
 ## 📋 Available Scripts
 
 ### Development
 ```bash
-npm run dev              # Start development server
-npm run build            # Build for production
+npm run dev              # Start development server (requires PostgreSQL)
+npm run build            # Build Payload admin panel + compile TypeScript
 npm run serve            # Run production build
-npm run generate:types   # Generate TypeScript types
+npm run generate:types   # Generate TypeScript types from collections
 ```
 
 ### AI Content Generation
 ```bash
-npm run ai:create-post   # Generate blog post with AI
+npm run ai:create-post   # Generate blog post with AI (draft mode)
 ```
 
 ### Docker
 ```bash
-npm run docker:build     # Build Docker image
-npm run docker:dev       # Start development containers
+npm run docker:build     # Build production Docker image
+npm run docker:dev       # Start development containers (app + PostgreSQL)
 npm run docker:prod      # Start production containers
 ```
 
 ## 📚 Collections
 
-### Core Collections
-- **Sites** - Multi-tenant site configuration
-- **Posts** - Blog articles with AI metadata
-- **Categories** - Content taxonomy
-- **Tags** - Content labeling
-- **Authors** - Content creators
+### Core Collections (✅ Implemented)
+- **Sites** - Multi-tenant site configuration with API keys
+- **Posts** - Blog articles with AI-generated metadata
+- **Categories** - Hierarchical content taxonomy
+- **Tags** - Content labeling and filtering
 - **Media** - File uploads and images
 - **Users** - Admin and editor accounts
 
@@ -118,20 +119,29 @@ Required configuration (see `.env.example`):
 ```bash
 # Server
 PORT=3001
-PAYLOAD_SECRET=your-secret-here
+PAYLOAD_SECRET=<min-32-chars>              # Generate with crypto.randomBytes(32)
 PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3001
+NODE_ENV=development
 
-# Database (PostgreSQL)
+# Database (PostgreSQL 16)
 DATABASE_URL=postgresql://kodalabs_cms:password@localhost:5432/kodalabs_cms
+POSTGRES_DB=kodalabs_cms
+POSTGRES_USER=kodalabs_cms
+POSTGRES_PASSWORD=<16-chars>               # Generate with crypto.randomBytes(16)
+
+# Development (Docker)
+PAYLOAD_CONFIG_PATH=src/payload.config.ts
+CI=true                                    # Auto-accept database migrations
+PAYLOAD_DROP_DATABASE=false
 
 # CORS (for frontend apps)
 CORS_ORIGIN_PJ_CLT=https://pjouclt.com.br
 CORS_ORIGIN_KODALABS=https://kodalabs.dev
 
-# AI Content Generation
+# AI Content Generation (Optional)
 ANTHROPIC_API_KEY=sk-ant-your-key
 
-# Webhooks (optional)
+# Webhooks (Optional)
 WEBHOOK_PJ_CLT=https://api.vercel.com/v1/integrations/deploy/xxx
 ```
 
@@ -156,29 +166,46 @@ Headers: Authorization: Bearer {jwt-token}
 Body: {post-data}
 ```
 
+### Health Check
+```bash
+GET /api/health
+Response: {
+  "status": "healthy",
+  "timestamp": "2025-10-21T09:53:09.000Z",
+  "version": "1.0.0",
+  "environment": "development"
+}
+```
+
 ## 🐳 Docker Deployment
 
 ### Development
 ```bash
-docker-compose -f deployment/docker/docker-compose.dev.yml up
+# Start development environment (app + PostgreSQL)
+npm run docker:dev
+
+# Access at: http://localhost:3001/admin
 ```
 
-### Production
+### Production (VPS)
 ```bash
-# Build image
-docker build -t kodalabs-cms:latest -f deployment/docker/Dockerfile .
+# Build production image
+npm run docker:build
 
-# Deploy
-docker-compose -f deployment/docker/docker-compose.prod.yml up -d
+# Deploy with Traefik networking
+npm run docker:prod
+
+# Access at: https://cms.kodalabs.dev/admin
 ```
 
 ## 📖 Documentation
 
-Complete documentation available in `/docs`:
-- [API Documentation](docs/API.md)
-- [Multi-Tenant Setup](docs/MULTI-TENANT.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [AI Content Generation](docs/AI-INTEGRATION.md)
+Complete technical documentation in `CLAUDE.md`:
+- Payload v2 migration details
+- SCSS transpilation fix
+- VPS deployment guide
+- Troubleshooting guide
+- API patterns and examples
 
 ## 🤝 Contributing
 
@@ -202,7 +229,7 @@ Complete documentation available in `/docs`:
 2. Navigate to Posts collection
 3. Create new post
 4. Select site, category, author
-5. Write content using rich text editor
+5. Write content using Slate rich text editor
 6. Set status to "published"
 7. Webhook triggers frontend rebuild
 
@@ -212,23 +239,36 @@ Complete documentation available in `/docs`:
 npm run ai:create-post
 
 # AI creates draft post
-# Review in admin panel
+# Review in admin panel at /admin
 # Approve and publish
 ```
 
 ## 🔍 Troubleshooting
+
+### SCSS Transpilation Errors
+**Error**: `SyntaxError: Invalid or unexpected token` in `.scss` files
+
+**Solution**: Ensure `register-scss-stub.js` is loaded (already configured in production):
+```bash
+node -r ./src/register-scss-stub.js dist/server.js
+```
 
 ### PostgreSQL Connection Issues
 ```bash
 # Check PostgreSQL is running
 docker ps | grep postgres
 
-# View logs
-docker logs kodalabs-cms-postgres
+# View database logs
+docker logs kodalabs-cms-postgres-dev
 
-# Connect to database
-docker exec -it kodalabs-cms-postgres psql -U kodalabs_cms
+# Connect to database directly
+docker exec -it kodalabs-cms-postgres-dev psql -U kodalabs_cms
 ```
+
+### Interactive Migration Prompts
+**Problem**: Server stuck on "Is table created or renamed?" prompts
+
+**Solution**: Set `CI=true` environment variable (already configured)
 
 ### Build Errors
 ```bash
@@ -240,7 +280,7 @@ npm run build
 
 ### TypeScript Errors
 ```bash
-# Regenerate types
+# Regenerate types from Payload collections
 npm run generate:types
 ```
 
@@ -249,38 +289,72 @@ npm run generate:types
 ```
 kodalabs-cms/
 ├── src/
-│   ├── collections/        # Payload collections
-│   ├── access/            # Access control
+│   ├── collections/        # Payload CMS collections (✅ implemented)
+│   ├── access/            # Access control rules (✅ implemented)
 │   ├── hooks/             # Lifecycle hooks
-│   ├── fields/            # Reusable fields
-│   ├── payload.config.ts  # Main config
-│   └── server.ts          # Express server
-├── scripts/               # Automation scripts
-├── deployment/            # Docker configs
-├── docs/                  # Documentation
-├── public/                # Static files
+│   ├── fields/            # Reusable field definitions
+│   ├── payload.config.ts  # ✅ Main Payload v2 configuration
+│   ├── server.ts          # ✅ Express server with Payload
+│   └── register-scss-stub.js  # ✅ SCSS transpilation fix
+├── scripts/               # AI content generation
+├── deployment/docker/     # Production deployment configs
+│   ├── Dockerfile         # ✅ Multi-stage production build
+│   ├── docker-compose.dev.yml   # ✅ Development environment
+│   └── docker-compose.prod.yml  # ✅ Production with Traefik
+├── build/                 # Webpack-compiled admin panel (auto-generated)
+├── dist/                  # TypeScript-compiled server (auto-generated)
+├── public/                # Static files and media uploads
 ├── package.json
 ├── tsconfig.json
+├── CLAUDE.md             # ✅ Complete technical documentation
 └── .env.example
 ```
 
 ## 🚀 Roadmap
 
-- [x] Phase 1: Repository setup
-- [ ] Phase 2: Blog UI integration
-- [ ] Phase 3: AI content generation
-- [ ] Phase 4: Production deployment
-- [ ] Phase 5: Multi-site expansion
+- [x] **Phase 1**: Repository setup & PostgreSQL migration
+- [x] **Phase 2**: Payload v2 configuration & collections
+- [x] **Phase 3**: SCSS transpilation fix & development environment
+- [x] **Phase 4**: Production deployment configuration
+- [ ] **Phase 5**: AI content generation integration
+- [ ] **Phase 6**: Multi-site expansion
+- [ ] **Phase 7**: Advanced webhooks & automation
 
 ## 📞 Support
 
-- **Documentation**: `/docs` directory
+- **Technical Documentation**: See `CLAUDE.md`
+- **API Documentation**: Built into Payload admin at `/api-docs`
 - **Issues**: GitHub Issues
 - **Project**: Part of KodaLabs ecosystem
 
 ---
 
-**Version**: 1.1.0
-**Status**: Phase 1 - Repository Setup Complete (PostgreSQL Migration)
-**Database**: PostgreSQL 16 (aligned with VPS infrastructure)
-**Next**: Phase 2 - Payload v3 Configuration
+## 🎯 Current Status
+
+**Version**: 2.0.0
+**Status**: ✅ **Fully Operational** - Ready for VPS Deployment
+**CMS**: Payload v2.30.3 (standalone Express server)
+**Database**: PostgreSQL 16
+**Environment**: Development ✅ | Production ✅
+
+### What's Working:
+- ✅ Payload v2 CMS fully operational
+- ✅ PostgreSQL database configured
+- ✅ Admin panel at http://localhost:3001/admin
+- ✅ REST API endpoints
+- ✅ All 6 collections implemented
+- ✅ Multi-language support (PT/EN/ES)
+- ✅ Health check endpoint
+- ✅ Docker development environment
+- ✅ Production build configuration
+
+### Next Steps:
+1. Deploy to VPS (see `CLAUDE.md` for deployment guide)
+2. Create first admin user
+3. Configure sites and content
+4. Integrate with frontend applications
+5. Enable AI content generation
+
+---
+
+**Developed by KodaLabs** | [kodalabs.dev](https://kodalabs.dev)
