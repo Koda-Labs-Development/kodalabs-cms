@@ -14,7 +14,9 @@
     "ai:create-post": "ts-node scripts/ai-content-generator.ts",
     "docker:build": "docker build -t kodalabs-cms:latest -f deployment/docker/Dockerfile .",
     "docker:dev": "docker-compose -f deployment/docker/docker-compose.dev.yml up",
-    "docker:prod": "docker-compose -f deployment/docker/docker-compose.prod.yml up -d"
+    "docker:prod": "docker-compose -f deployment/docker/docker-compose.prod.yml up -d",
+    "security:verify": "bash scripts/verify-security.sh",
+    "security:check": "git status && git diff --cached"
   },
   "keywords": [],
   "author": "",

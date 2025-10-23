@@ -35,6 +35,23 @@ Each site has:
 - Docker & Docker Compose
 - Git
 
+## ⚠️ Security Notice
+
+**IMPORTANT**: Never commit your `.env` file!
+
+- ✅ Copy `.env.example` to `.env` and fill with your own secrets
+- ❌ Never commit `.env` - it's already in `.gitignore`
+- 🔒 See [SECURITY.md](SECURITY.md) for complete security guidelines
+
+**Generate secure secrets:**
+```bash
+# Payload secret (min 32 chars)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# PostgreSQL password
+node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+```
+
 ### Installation
 
 1. **Clone the repository**
@@ -48,10 +65,11 @@ Each site has:
    npm install
    ```
 
-3. **Configure environment**
+3. **Configure environment** ⚠️
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
+   # ⚠️ NEVER commit the .env file!
    ```
 
 4. **Generate secrets**
@@ -113,6 +131,8 @@ All content supports:
 - Spanish (es)
 
 ## 🔐 Environment Variables
+
+⚠️ **Security Warning**: The `.env` file contains sensitive secrets and must NEVER be committed to git. It's already in `.gitignore` - keep it that way! See [SECURITY.md](SECURITY.md) for details.
 
 Required configuration (see `.env.example`):
 
