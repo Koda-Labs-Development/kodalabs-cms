@@ -1,14 +1,8 @@
-version: '3.9'
-
 services:
-  kodalabs-cms:
-    build:
-      context: ../../
-      dockerfile: deployment/docker/Dockerfile
+  kodalabs-cms-prod:
+    image: ghcr.io/maxh33/kodalabs-cms:prod
     container_name: kodalabs-cms-prod
     restart: unless-stopped
-    env_file:
-      - ../../.env
     environment:
       - NODE_ENV=production
       - PORT=3001
@@ -26,45 +20,58 @@ services:
     depends_on:
       cms-postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
     labels:
-      # Traefik
+      # Traefik routing
       - "traefik.enable=true"
       - "traefik.http.routers.cms.rule=Host(`cms.kodalabs.dev`)"
       - "traefik.http.routers.cms.entrypoints=websecure"
       - "traefik.http.routers.cms.tls=true"
-      - "traefik.http.routers.cms.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.cms.tls.certresolver=myresolver"
       - "traefik.http.services.cms.loadbalancer.server.port=3001"
-      # Security
+      - "traefik.http.routers.cms.priority=100"
+      # Security headers
       - "traefik.http.middlewares.cms-headers.headers.customResponseHeaders.X-Robots-Tag=noindex,nofollow"
       - "traefik.http.routers.cms.middlewares=cms-headers"
+      # Watchtower auto-update
+      - "com.centurylinklabs.watchtower.enable=true"
       # Monitoring
       - "prometheus.scrape=true"
       - "prometheus.port=3001"
+      - "prometheus.path=/api/metrics"
 
   cms-postgres:
     image: postgres:16-alpine
     container_name: kodalabs-cms-postgres
     restart: unless-stopped
-    env_file:
-      - ../../.env
+    hostname: cms-postgres
     environment:
       - POSTGRES_DB=kodalabs_cms
       - POSTGRES_USER=kodalabs_cms
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - cms-postgres-data:/var/lib/postgresql/data
-      - ../backup:/backup
     networks:
       monitoring_shared_monitoring_network:
         ipv4_address: 172.18.0.31
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kodalabs_cms"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U kodalabs_cms -d kodalabs_cms"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     labels:
-      - "prometheus.scrape=true"
-      - "prometheus.port=5432"
+      - "prometheus.scrape=false"  # PostgreSQL metrics can be added later with postgres_exporter if needed
 
 networks:
   monitoring_shared_monitoring_network:
