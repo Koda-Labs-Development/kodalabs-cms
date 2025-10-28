@@ -43,8 +43,8 @@ jobs:
       - name: Build and push Docker image
         run: |
           docker buildx build --platform linux/amd64 --load \
-            -t ghcr.io/maxh33/kodalabs-cms:prod -f deployment/docker/Dockerfile .
-          docker push ghcr.io/maxh33/kodalabs-cms:prod
+            -t ghcr.io/${{ github.repository_owner }}/kodalabs-cms:prod -f deployment/docker/Dockerfile .
+          docker push ghcr.io/${{ github.repository_owner }}/kodalabs-cms:prod
 
   deploy:
     runs-on: ubuntu-latest
@@ -76,59 +76,39 @@ jobs:
           script: |
             cd ~/kodalabs-cms
 
-            # Create .env file with all secrets
-            cat > .env << EOF
-            # Server Configuration
-            PORT=3001
-            NODE_ENV=production
-            PAYLOAD_SECRET=${{ secrets.PAYLOAD_SECRET }}
-            PAYLOAD_PUBLIC_SERVER_URL=https://cms.kodalabs.dev
-            PAYLOAD_CONFIG_PATH=dist/payload.config.js
-            CI=true
-            PAYLOAD_DROP_DATABASE=false
-
-            # Database Configuration
-            POSTGRES_DB=kodalabs_cms
-            POSTGRES_USER=kodalabs_cms
-            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-            DATABASE_URL=postgresql://kodalabs_cms:${{ secrets.POSTGRES_PASSWORD }}@cms-postgres:5432/kodalabs_cms
-
-            # CORS Origins
-            CORS_ORIGIN_PJ_CLT=${{ secrets.CORS_ORIGIN_PJ_CLT }}
-            CORS_ORIGIN_KODALABS=${{ secrets.CORS_ORIGIN_KODALABS }}
-
-            # Email Configuration (Optional)
-            EMAIL_HOST=${{ secrets.EMAIL_HOST }}
-            EMAIL_USER=${{ secrets.EMAIL_USER }}
-            EMAIL_PASS=${{ secrets.EMAIL_PASS }}
-
-            # AI Content Generation (Optional)
-            ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
-            AI_CONTENT_API_KEY=${{ secrets.AI_CONTENT_API_KEY }}
-
-            # Webhooks (Optional)
-            WEBHOOK_PJ_CLT=${{ secrets.WEBHOOK_PJ_CLT }}
-            WEBHOOK_KODALABS=${{ secrets.WEBHOOK_KODALABS }}
-
-            # Monitoring (Optional)
-            SENTRY_DSN=${{ secrets.SENTRY_DSN }}
-
-            # GitHub Container Registry (for Watchtower)
-            GITHUB_USER=${{ github.repository_owner }}
-            GITHUB_TOKEN=${{ secrets.GHCR_TOKEN }}
-            EOF
+            # Export secrets as environment variables (only exist in this SSH session)
+            export PORT=3001
+            export NODE_ENV=production
+            export PAYLOAD_SECRET='${{ secrets.PAYLOAD_SECRET }}'
+            export PAYLOAD_PUBLIC_SERVER_URL=https://cms.kodalabs.dev
+            export PAYLOAD_CONFIG_PATH=dist/payload.config.js
+            export CI=true
+            export PAYLOAD_DROP_DATABASE=false
+            export POSTGRES_DB=kodalabs_cms
+            export POSTGRES_USER=kodalabs_cms
+            export POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}'
+            export DATABASE_URL="postgresql://kodalabs_cms:${{ secrets.POSTGRES_PASSWORD }}@cms-postgres:5432/kodalabs_cms"
+            export CORS_ORIGIN_PJ_CLT='${{ secrets.CORS_ORIGIN_PJ_CLT }}'
+            export CORS_ORIGIN_KODALABS='${{ secrets.CORS_ORIGIN_KODALABS }}'
+            export EMAIL_HOST='${{ secrets.EMAIL_HOST }}'
+            export EMAIL_USER='${{ secrets.EMAIL_USER }}'
+            export EMAIL_PASS='${{ secrets.EMAIL_PASS }}'
+            export ANTHROPIC_API_KEY='${{ secrets.ANTHROPIC_API_KEY }}'
+            export AI_CONTENT_API_KEY='${{ secrets.AI_CONTENT_API_KEY }}'
+            export WEBHOOK_PJ_CLT='${{ secrets.WEBHOOK_PJ_CLT }}'
+            export WEBHOOK_KODALABS='${{ secrets.WEBHOOK_KODALABS }}'
+            export SENTRY_DSN='${{ secrets.SENTRY_DSN }}'
+            export GITHUB_USER='${{ github.repository_owner }}'
+            export GITHUB_TOKEN='${{ secrets.GHCR_TOKEN }}'
 
             # Create backup directory
             mkdir -p ~/kodalabs-cms/bkp
 
-            # Debug: Output env file for verification (secrets will be masked in logs)
-            echo "--- .env file created ---"
-            echo "Environment file configured with $(wc -l < .env) lines"
-            echo "-------------------------"
+            echo "Environment variables configured (secrets only exist in this session)"
 
             # Check if shared monitoring is running
             if ! docker ps | grep -q "traefik"; then
-              echo "   Traefik not found. Shared monitoring should be running..."
+              echo "ï¿½  Traefik not found. Shared monitoring should be running..."
               echo "Please ensure the shared monitoring stack is deployed first."
               exit 1
             else

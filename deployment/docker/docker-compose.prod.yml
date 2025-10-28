@@ -1,6 +1,6 @@
 services:
   kodalabs-cms-prod:
-    image: ghcr.io/maxh33/kodalabs-cms:prod
+    image: ghcr.io/${GITHUB_USER}/kodalabs-cms:prod
     container_name: kodalabs-cms-prod
     restart: unless-stopped
     environment:
