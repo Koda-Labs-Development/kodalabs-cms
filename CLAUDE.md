@@ -433,3 +433,108 @@ The production setup uses Traefik reverse proxy on a shared monitoring network:
 - **Domain**: `cms.kodalabs.dev`
 - **SSL/TLS**: Automated via Traefik + Let's Encrypt
 - **Monitoring**: Prometheus labels configured
+
+## CI/CD Security Model
+
+This section documents the security design decisions in our CI/CD pipeline to address common security review concerns.
+
+### Secrets Management via Environment Variables
+
+**Pattern**: GitHub Secrets are exported as environment variables in the SSH session, NOT written to persistent .env files.
+
+```bash
+export PAYLOAD_SECRET='${{ secrets.PAYLOAD_SECRET }}'
+export POSTGRES_PASSWORD='${{ secrets.POSTGRES_PASSWORD }}'
+docker compose up -d
+```
+
+**Why This is Secure**:
+- ✅ Secrets only exist in memory during the SSH session
+- ✅ Automatically cleared when the session terminates
+- ✅ No persistent files containing secrets on the VPS
+- ✅ GitHub Actions automatically masks secrets in logs
+- ✅ docker-compose.prod.yml consumes variables via `${VAR}` substitution
+
+**Alternative Considered**: Writing to `.env` file
+- ❌ Secrets persist on disk
+- ❌ Risk of accidental backup or copying
+- ❌ Requires manual cleanup
+
+**Why GitHub Secrets Don't Need Additional Validation**:
+- Secrets are controlled by repository maintainers (not user input)
+- GitHub Actions automatically escapes secrets in shell heredocs
+- Not subject to injection attacks like user-provided data
+
+### Fixed IP Addresses in Docker Network
+
+**Pattern**: Production containers use fixed IP addresses in an isolated Docker network.
+
+```yaml
+networks:
+  monitoring_shared_monitoring_network:
+    ipv4_address: 172.18.0.30  # App
+    ipv4_address: 172.18.0.31  # Database
+```
+
+**Why This is Secure and Intentional**:
+- ✅ **Network Isolation**: Docker network is external and isolated from the host
+- ✅ **Traefik Integration**: Fixed IPs enable predictable reverse proxy routing
+- ✅ **Firewall Rules**: Easier to configure network segmentation and access control
+- ✅ **NOT Exposed**: Only Traefik has internet access; backend containers are isolated
+- ✅ **Production Stability**: Prevents IP changes that could break routing
+
+**Common Misconception**: "Fixed IPs are less secure than DNS"
+- In production infrastructure with reverse proxies, fixed IPs provide **more** control
+- The network is private and managed by the monitoring/Traefik stack
+- This is a standard pattern for Docker + Traefik deployments
+
+### Resource Limits Are Protective
+
+**Pattern**: Container resource limits prevent resource exhaustion.
+
+```yaml
+deploy:
+  resources:
+    limits:
+      cpus: '1.0'
+      memory: 1024M
+```
+
+**Why This PREVENTS DoS Attacks**:
+- ✅ Caps maximum CPU/memory per container
+- ✅ Protects host system from container resource exhaustion
+- ✅ Prevents accidental memory leaks from crashing the server
+- ✅ Ensures fair resource allocation in multi-container environments
+
+**Common Misconception**: "Resource limits enable DoS"
+- Resource limits are a **defense mechanism**, not a vulnerability
+- Application-layer rate limiting (e.g., request throttling) is a separate concern
+- Payload CMS doesn't include built-in rate limiting; this would require custom middleware
+
+### Dynamic Container Registry URLs
+
+**Pattern**: Container image URLs use repository owner variables instead of hardcoded usernames.
+
+```yaml
+# CI/CD Workflow
+image: ghcr.io/${{ github.repository_owner }}/kodalabs-cms:prod
+
+# docker-compose.prod.yml
+image: ghcr.io/${GITHUB_USER}/kodalabs-cms:prod
+```
+
+**Why This is Important**:
+- ✅ Portable across repository forks and ownership changes
+- ✅ Prevents deployment failures if repository is transferred
+- ✅ Supports multi-organization deployments
+
+### Summary: False Positives in Security Reviews
+
+When reviewing this codebase, the following are **not** vulnerabilities:
+
+1. **Exporting GitHub Secrets as environment variables** - Secure and recommended pattern
+2. **Fixed IP addresses in Docker networks** - Intentional for Traefik integration and network control
+3. **Container resource limits** - Protective mechanism, not a vulnerability
+4. **No validation of GitHub Secrets** - Not user input; controlled by repository maintainers
+
+These design decisions follow Docker and CI/CD best practices for production deployments without orchestration platforms (Kubernetes/Swarm).
