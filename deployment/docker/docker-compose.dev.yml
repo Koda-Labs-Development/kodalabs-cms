@@ -15,7 +15,6 @@ services:
     environment:
       - NODE_ENV=development
       - PAYLOAD_CONFIG_PATH=src/payload.config.ts
-      - DATABASE_URL=postgresql://kodalabs_cms:${POSTGRES_PASSWORD}@cms-postgres-dev:5432/kodalabs_cms
       - PAYLOAD_DROP_DATABASE=false
       - CI=true
     volumes:
@@ -36,10 +35,6 @@ services:
       - "5433:5432"
     env_file:
       - ../../.env
-    environment:
-      - POSTGRES_DB=kodalabs_cms
-      - POSTGRES_USER=kodalabs_cms
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - cms-postgres-dev-data:/var/lib/postgresql/data
     healthcheck:
